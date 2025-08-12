@@ -1,18 +1,3 @@
-# =======================
-# cmd args
-# =======================
-args <- commandArgs(trailingOnly=TRUE)
-if (length(args) >= 2) {
-  csv_file    <- args[1]
-  new_data_path <- args[2]
-  output_dir  <- ifelse(length(args) >= 3, args[3], ".")
-} else {
-  csv_file    <- "backend/prediction/data/train/240130-Paper1-present 1633 targets.csv"
-  new_data_path <- "backend/prediction/data/test/new_samples.csv"
-  output_dir  <- "backend/prediction/output"
-}
-if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
-
 # ================================================================
 # 1. Load packages & define functions (Run this block first)
 # ================================================================
@@ -21,6 +6,7 @@ if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
 
 suppressPackageStartupMessages({
   library(tibble)
+  library(jsonlite)
   library(vegan)
   library(ggplot2)
   library(dplyr)
@@ -401,9 +387,76 @@ run_nmds_pipeline <- function(csv_file, new_data_path, output_dir,
 }
 
 
+# ================================================================
+# Emit minimal JSON to stdout (for Python subprocess)
+# ================================================================
+emit_nmds_json <- function(csv_file, new_data_path, output_dir,
+                           k_final = 2, seed = 42,
+                           get_stress = FALSE, save_outputs = FALSE,
+                           include_scores = FALSE, scores_limit = 0) {
+  res <- run_nmds_pipeline(csv_file, new_data_path, output_dir,
+                           k_final = k_final, seed = seed,
+                           get_stress = get_stress, save_outputs = save_outputs)
+
+  stress_val <- unname(res$objects$model$ordination$stress)
+  new_pts    <- tibble::rownames_to_column(as.data.frame(res$objects$overlay$new_coords), "Sample")
+
+  payload <- list(
+    status     = "ok",
+    stress     = stress_val,
+    k_final    = k_final,
+    new_points = new_pts
+  )
+
+  if (include_scores) {
+    scores <- res$objects$pairplots$scores_df
+    if (scores_limit > 0) scores <- utils::head(scores, scores_limit)
+    payload$scores <- scores
+  }
+  if (save_outputs) payload$files <- res$files
+
+  cat(jsonlite::toJSON(payload, dataframe = "rows", auto_unbox = TRUE, na = "null"), "\n")
+  invisible(res)
+}
 
 # ================================================================
-# Run pipeline if executed directly (command line / Rscript)
+# CLI entrypoint (AFTER all functions are defined)
+#    Usage:
+#      Rscript 1633_NMDS.R <csv> <new_data> <output_dir> [save|nosave] [scores_limit]
 # ================================================================
-#res <- run_nmds_pipeline(csv_file, new_data_path, output_dir,
-#                         k_final = 2, get_stress = FALSE, save_outputs = TRUE)
+if (!interactive()) {
+  args <- commandArgs(trailingOnly = TRUE)
+  if (length(args) < 3) {
+    stop("Usage: Rscript 1633_NMDS.R <csv> <new_data> <output_dir> [save|nosave] [scores_limit]")
+  }
+  csv_file     <- args[[1]]
+  new_data_path<- args[[2]]
+  output_dir   <- args[[3]]
+  save_flag    <- ifelse(length(args) >= 4 && tolower(args[[4]]) %in% c("save","true","1"), TRUE, FALSE)
+  scores_limit <- ifelse(length(args) >= 5, as.integer(args[[5]]), 0L)
+
+  if (save_flag && !dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
+
+  emit_nmds_json(
+    csv_file      = csv_file,
+    new_data_path = new_data_path,
+    output_dir    = output_dir,
+    k_final       = 2,
+    seed          = 42,
+    get_stress    = FALSE,
+    save_outputs  = save_flag,
+    include_scores= TRUE,
+    scores_limit  = scores_limit
+  )
+  quit(save = "no", status = 0)   # stop here when run via Rscript
+}
+
+# ================================================================
+# Optional interactive defaults (ONLY for RStudio use)
+# ================================================================
+csv_file      <- "backend/prediction/data/train/240130-Paper1-present 1633 targets.csv"
+new_data_path <- "backend/prediction/data/test/new_samples.csv"
+output_dir    <- "backend/prediction/output"
+if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
+res <- run_nmds_pipeline(csv_file, new_data_path, output_dir, k_final=2,
+                        get_stress=FALSE, save_outputs=TRUE)
