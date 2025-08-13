@@ -11,7 +11,7 @@ from scipy.stats import chi2
 
 R_FILE = Path("prediction/1633_NMDS.R").resolve()
 CSV    = Path("prediction/data/train/240130-Paper1-present 1633 targets.csv").resolve()
-NEW    = Path("prediction/data/test/new_samples.csv").resolve()
+NEW    = Path("prediction/data/train/240130-Paper1-present 1633 targets.csv").resolve()
 OUT    = Path("prediction/output").resolve()
 
 cp = subprocess.run(

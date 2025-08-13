@@ -320,6 +320,9 @@ run_nmds_pipeline <- function(csv_file, new_data_path, output_dir,
 
   if (save_outputs && !dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
 
+  set.seed(seed)
+  RNGkind(kind = "Mersenne-Twister", normal.kind = "Inversion", sample.kind = "Rounding")  # stable across sessions
+
   # 1) Load data
   dataset <- load_data(csv_file)  # df, X, feature_cols, group_col
 
@@ -442,7 +445,6 @@ if (!interactive()) {
     new_data_path = new_data_path,
     output_dir    = output_dir,
     k_final       = 2,
-    seed          = 42,
     get_stress    = FALSE,
     save_outputs  = save_flag,
     include_scores= TRUE,
@@ -455,7 +457,7 @@ if (!interactive()) {
 # Optional interactive defaults (ONLY for RStudio use)
 # ================================================================
 csv_file      <- "backend/prediction/data/train/240130-Paper1-present 1633 targets.csv"
-new_data_path <- "backend/prediction/data/test/new_samples.csv"
+new_data_path <- "backend/prediction/data/train/240130-Paper1-present 1633 targets.csv"
 output_dir    <- "backend/prediction/output"
 if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
 res <- run_nmds_pipeline(csv_file, new_data_path, output_dir, k_final=2,
