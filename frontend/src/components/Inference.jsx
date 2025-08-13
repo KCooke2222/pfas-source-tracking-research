@@ -35,13 +35,7 @@ function ellipsePolygon({ cx, cy, width, height, angle }, n = 128) {
 }
 
 export default function Inference({ data, height = 640 }) {
-  const {
-    scores = [],
-    new_points = [],
-    ellipses = {},
-    viewport,
-    stress,
-  } = data || {};
+  const { scores = [], new_points = [], ellipses = {}, stress } = data || {};
 
   // Clean numeric
   const scoresClean = useMemo(
@@ -59,41 +53,10 @@ export default function Inference({ data, height = 640 }) {
     [new_points]
   );
 
-  // Padded ranges that include all points
-  const ranges = useMemo(() => {
-    const xs = [...scoresClean, ...newClean].map((r) => r.NMDS1);
-    const ys = [...scoresClean, ...newClean].map((r) => r.NMDS2);
-    if (xs.length && ys.length) {
-      let xmin = Math.min(...xs),
-        xmax = Math.max(...xs);
-      let ymin = Math.min(...ys),
-        ymax = Math.max(...ys);
-      const span = Math.max(xmax - xmin, ymax - ymin) || 1;
-      const pad = span * 0.1;
-      const xmid = (xmin + xmax) / 2,
-        ymid = (ymin + ymax) / 2;
-      return {
-        xmin: xmid - span / 2 - pad,
-        xmax: xmid + span / 2 + pad,
-        ymin: ymid - span / 2 - pad,
-        ymax: ymid + span / 2 + pad,
-      };
-    }
-    if (
-      viewport &&
-      [viewport.xmin, viewport.xmax, viewport.ymin, viewport.ymax].every(
-        Number.isFinite
-      )
-    ) {
-      return viewport;
-    }
-    return { xmin: -1, xmax: 1, ymin: -1, ymax: 1 };
-  }, [scoresClean, newClean, viewport]);
-
   const traces = useMemo(() => {
     const t = [];
 
-    // Ellipses (keep your alpha via 8-digit hex)
+    // Ellipses (filled, no stroke)
     Object.entries(ellipses).forEach(([g, e]) => {
       const poly = ellipsePolygon(e, 180);
       const col = groupColor(g);
@@ -111,7 +74,7 @@ export default function Inference({ data, height = 640 }) {
       });
     });
 
-    // Group points (colors only)
+    // Group points
     const byGroup = {};
     for (const r of scoresClean) (byGroup[r.Group] ||= []).push(r);
     Object.keys(byGroup)
@@ -128,7 +91,7 @@ export default function Inference({ data, height = 640 }) {
         });
       });
 
-    // New points (unchanged except palette is separate)
+    // New points
     if (newClean.length) {
       t.push({
         x: newClean.map((p) => p.NMDS1),
@@ -163,31 +126,32 @@ export default function Inference({ data, height = 640 }) {
         zeroline: true,
         showgrid: true,
         gridcolor: "rgba(0,0,0,0.1)",
+        // Keep equal scales (square axes) but let Plotly autorange initially
         scaleanchor: "y",
         scaleratio: 1,
-        range: [ranges.xmin, ranges.xmax],
+        autorange: true,
       },
       yaxis: {
         title: "NMDS2",
         zeroline: true,
         showgrid: true,
         gridcolor: "rgba(0,0,0,0.1)",
-        range: [ranges.ymin, ranges.ymax],
+        autorange: true,
       },
       legend: { orientation: "h", x: 0, y: -0.15 },
       hovermode: "closest",
     }),
-    [ranges, stress]
+    [stress]
   );
 
   return (
-    <div className="w-full">
+    <div className="w-full" style={{ height }}>
       <Plot
         data={traces}
         layout={layout}
         useResizeHandler
-        style={{ width: "100%", height }}
-        config={{ displaylogo: false, responsive: true }}
+        style={{ width: "100%", height: "100%" }}
+        config={{ displaylogo: false }}
       />
     </div>
   );

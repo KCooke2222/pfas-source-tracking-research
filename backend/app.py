@@ -87,22 +87,6 @@ def _ellipse_params(scores_df: pd.DataFrame):
         }
     return ell
 
-
-def _viewport(scores_df: pd.DataFrame, new_points_df: pd.DataFrame):
-    x = np.r_[scores_df["NMDS1"].to_numpy(), new_points_df["NMDS1"].to_numpy()]
-    y = np.r_[scores_df["NMDS2"].to_numpy(), new_points_df["NMDS2"].to_numpy()]
-    xmid, ymid = x.mean(), y.mean()
-    xspan, yspan = x.max() - x.min(), y.max() - y.min()
-    span = float(max(xspan, yspan) * 1.10)  # 10% padding, square aspect
-    hx = hy = span / 2.0
-    return {
-        "xmin": float(xmid - hx),
-        "xmax": float(xmid + hx),
-        "ymin": float(ymid - hy),
-        "ymax": float(ymid + hy),
-    }
-
-
 # --- core ---
 def _process_csv(new_csv_path: Path):
     df = pd.read_csv(new_csv_path)
@@ -114,7 +98,6 @@ def _process_csv(new_csv_path: Path):
     scores_df = pd.DataFrame(payload["scores"])      # Sample, Group, NMDS1, NMDS2
     new_df    = pd.DataFrame(payload["new_points"])  # Sample, NMDS1, NMDS2
     ell       = _ellipse_params(scores_df)
-    view      = _viewport(scores_df, new_df)
 
     return {
         "preview": preview,
@@ -124,7 +107,6 @@ def _process_csv(new_csv_path: Path):
             "scores": payload.get("scores", []),
             "new_points": payload.get("new_points", []),
             "ellipses": ell,
-            "viewport": view,
         }
     }
 
