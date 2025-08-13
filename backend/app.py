@@ -1,14 +1,18 @@
-from flask import Flask, request, jsonify, send_file
-from flask_cors import CORS
-import pandas as pd
 import io
-import os, re, json, tempfile, subprocess
-from pathlib import Path
-from flask import Blueprint, request, jsonify
-import pandas as pd
-import numpy as np
-from scipy.stats import chi2
+import os
+import re
+import json
 import shutil
+import tempfile
+import subprocess
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+from scipy.stats import chi2
+
+from flask import Flask, request, jsonify, send_file, Blueprint
+from flask_cors import CORS
 
 
 app = Flask(__name__)
