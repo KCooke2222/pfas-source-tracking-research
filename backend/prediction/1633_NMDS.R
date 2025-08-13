@@ -42,7 +42,7 @@ align_features <- function(df, feature_cols) {
 fit_nmds <- function(X, k = 2, trymax = 500, maxit = 1000) {
   metaMDS(
     X, distance = "bray", k = k, trymax = trymax, maxit = maxit,
-    autotransform = FALSE, noshare = FALSE, trace = 1
+    autotransform = FALSE, noshare = FALSE, trace = 0
   )
 }
 

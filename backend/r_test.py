@@ -9,10 +9,10 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 from scipy.stats import chi2
 
-R_FILE = Path("backend/prediction/1633_NMDS.R").resolve()
-CSV    = Path("backend/prediction/data/train/240130-Paper1-present 1633 targets.csv").resolve()
-NEW    = Path("backend/prediction/data/test/new_samples.csv").resolve()
-OUT    = Path("backend/prediction/output").resolve()
+R_FILE = Path("prediction/1633_NMDS.R").resolve()
+CSV    = Path("prediction/data/train/240130-Paper1-present 1633 targets.csv").resolve()
+NEW    = Path("prediction/data/test/new_samples.csv").resolve()
+OUT    = Path("prediction/output").resolve()
 
 cp = subprocess.run(
     ["Rscript", str(R_FILE), str(CSV), str(NEW), str(OUT), "nosave", "0"],
