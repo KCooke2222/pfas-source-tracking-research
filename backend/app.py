@@ -22,6 +22,7 @@ def allowed_file(filename):
 R_FILE    = Path("prediction/1633_NMDS.R").resolve()
 TRAIN_CSV = Path("prediction/data/train/240130-Paper1-present 1633 targets.csv").resolve()
 OUT_DIR   = Path("prediction/output").resolve()
+DEMO_DIR  = Path("prediction/data/test").resolve()  # backend/prediction/data/test
 
 # --- helpers ---
 def _run_rscript(train_csv, new_csv, out_dir, save_plots=False):
@@ -102,6 +103,53 @@ def _viewport(scores_df: pd.DataFrame, new_points_df: pd.DataFrame):
     }
 
 
+# --- core ---
+def _process_csv(new_csv_path: Path):
+    df = pd.read_csv(new_csv_path)
+    preview = df.head(5).to_dict(orient='records')
+    columns = list(df.columns)
+
+    payload = _run_rscript(TRAIN_CSV, new_csv_path, OUT_DIR, save_plots=False)
+
+    scores_df = pd.DataFrame(payload["scores"])      # Sample, Group, NMDS1, NMDS2
+    new_df    = pd.DataFrame(payload["new_points"])  # Sample, NMDS1, NMDS2
+    ell       = _ellipse_params(scores_df)
+    view      = _viewport(scores_df, new_df)
+
+    return {
+        "preview": preview,
+        "columns": columns,
+        "nmds": {
+            "stress": payload.get("stress"),
+            "scores": payload.get("scores", []),
+            "new_points": payload.get("new_points", []),
+            "ellipses": ell,
+            "viewport": view,
+        }
+    }
+
+@app.route('/demo/options', methods=['GET'])
+def demo_options():
+    if not DEMO_DIR.exists():
+        return jsonify({"options": []})
+    files = sorted([p.name for p in DEMO_DIR.glob("*.csv") if p.is_file()])
+    return jsonify({"options": files})
+
+@app.route('/demo/run', methods=['POST'])
+def demo_run():
+    name = (request.get_json() or {}).get("name", "")
+    # allow only files we advertised
+    allowed = {p.name for p in DEMO_DIR.glob("*.csv")}
+    if name not in allowed:
+        return jsonify({"error": "Invalid demo file"}), 400
+
+    try:
+        result = _process_csv(DEMO_DIR / name)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": f"Demo processing failed: {e}"}), 500
+
+# tighten /upload to reuse the core
 @app.route('/upload', methods=['POST'])
 def upload_nmds():
     file = request.files.get("file")
@@ -114,37 +162,11 @@ def upload_nmds():
         with tempfile.TemporaryDirectory() as td:
             new_csv = Path(td) / "new_samples.csv"
             file.save(str(new_csv))
-
-            # Preview + columns for your Preview tab
-            df = pd.read_csv(new_csv)
-            preview = df.head(5).to_dict(orient='records')
-            columns = list(df.columns)
-
-            # Run R
-            payload = _run_rscript(TRAIN_CSV, new_csv, OUT_DIR, save_plots=False)
+            result = _process_csv(new_csv)
+            return jsonify(result)
     except Exception as e:
         return jsonify({"error": f"R execution failed: {e}"}), 500
 
-    try:
-        scores_df = pd.DataFrame(payload["scores"])      # Sample, Group, NMDS1, NMDS2
-        new_df    = pd.DataFrame(payload["new_points"])  # Sample, NMDS1, NMDS2
-        ell       = _ellipse_params(scores_df)
-        view      = _viewport(scores_df, new_df)
-    except Exception as e:
-        return jsonify({"error": f"Post-processing failed: {e}"}), 500
-
-    # Return what your page expects
-    return jsonify({
-        "preview": preview,
-        "columns": columns,
-        "nmds": {
-            "stress": payload.get("stress"),
-            "scores": payload.get("scores", []),
-            "new_points": payload.get("new_points", []),
-            "ellipses": ell,
-            "viewport": view,
-        }
-    })
 # Results download as CSV
 @app.route('/download', methods=['POST'])
 def download_results():
@@ -163,6 +185,8 @@ def download_results():
         as_attachment=True,
         download_name='results.csv'
     )
+
+# --- flask stuff ---
 
 # Serve static files
 @app.route('/')
