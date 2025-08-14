@@ -131,6 +131,15 @@ export default function SimpleDataTool() {
     }
   };
 
+  const handleDownloadTemplate = () => {
+    const link = document.createElement("a");
+    link.href = `${apiBase}/template`; // create an endpoint serving the file
+    link.download = "template.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const tabsEnabled = !!preview && !!nmds;
 
   return (
@@ -169,7 +178,16 @@ export default function SimpleDataTool() {
       {/* Upload or Demo selector */}
       {mode === "upload" ? (
         <div className={loading ? "opacity-50 pointer-events-none" : ""}>
-          <FileUpload onUpload={handleUpload} onReset={resetState} />
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+            <FileUpload onUpload={handleUpload} onReset={resetState} />
+            <button
+              onClick={handleDownloadTemplate}
+              className="px-3 py-2 rounded border border-gray-300 bg-white hover:bg-gray-50 text-gray-800"
+              disabled={loading}
+            >
+              Download Template CSV
+            </button>
+          </div>
         </div>
       ) : (
         <div className="flex gap-2 items-center mb-4">

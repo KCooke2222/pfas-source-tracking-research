@@ -172,6 +172,12 @@ def download_results():
         download_name='results.csv'
     )
 
+
+@app.route("/template", methods=["GET"])
+def download_template():
+    template_path = Path("prediction/data/template.csv")
+    return send_file(template_path, as_attachment=True)
+
 # --- flask stuff ---
 
 # Serve static files
