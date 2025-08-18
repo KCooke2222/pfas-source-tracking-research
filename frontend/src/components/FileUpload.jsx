@@ -28,12 +28,14 @@ export default function FileUpload({ onUpload, onReset }) {
       <button
         type="button"
         onClick={handleButtonClick}
-        className="px-4 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors"
+        className="w-full sm:w-auto px-4 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors"
       >
         Choose CSV File
       </button>
       {fileName && (
-        <span className="ml-4 text-gray-700 align-middle">{fileName}</span>
+        <span className="block mt-2 text-gray-700 sm:inline sm:ml-4 sm:mt-0 align-middle">
+          {fileName}
+        </span>
       )}
     </div>
   );

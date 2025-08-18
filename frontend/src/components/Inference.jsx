@@ -12,8 +12,36 @@ const COLOR_MAP = {
   WWTP: "#D55E00", // vermilion
 };
 
+// Berkeley-style symbol shapes for different sources
+const SHAPE_MAP = {
+  BL: "circle",
+  GW: "triangle-up", 
+  LL: "square",
+  PG: "diamond",
+  PP: "triangle-down",
+  WWTP: "star"
+};
+
+// Full descriptive names for sources
+const FULL_NAMES = {
+  BL: "BL — Biosolids leachate",
+  GW: "GW — AFFF-impacted groundwater", 
+  LL: "LL — Landfill leachate",
+  PG: "PG — Power-generation effluent",
+  PP: "PP — Pulp & paper mill effluent", 
+  WWTP: "WWTP — Municipal wastewater treatment plant effluent"
+};
+
 function groupColor(group) {
   return COLOR_MAP[group] || "#666666";
+}
+
+function groupShape(group) {
+  return SHAPE_MAP[group] || "circle";
+}
+
+function groupFullName(group) {
+  return FULL_NAMES[group] || group;
 }
 
 function ellipsePolygon({ cx, cy, width, height, angle }, n = 128) {
@@ -32,6 +60,84 @@ function ellipsePolygon({ cx, cy, width, height, angle }, n = 128) {
     pts.push([x, y]);
   }
   return pts;
+}
+
+// Custom Legend Component
+function CustomLegend({ groups, showNewPoints = false }) {
+  return (
+    <div className="bg-white rounded-lg p-4">
+      <h3 className="text-sm font-semibold mb-3 text-gray-700">Source Types</h3>
+      <div className="space-y-2">
+        {groups.map((group) => (
+          <div key={group} className="flex items-center gap-3">
+            <div className="flex-shrink-0">
+              <svg width="16" height="16" viewBox="0 0 16 16">
+                <LegendSymbol 
+                  shape={groupShape(group)} 
+                  color={groupColor(group)} 
+                  size={8}
+                  cx={8} 
+                  cy={8} 
+                />
+              </svg>
+            </div>
+            <span className="text-sm text-gray-800 leading-tight">
+              {groupFullName(group)}
+            </span>
+          </div>
+        ))}
+        {showNewPoints && (
+          <div className="flex items-center gap-3 pt-2 border-t border-gray-200">
+            <div className="flex-shrink-0">
+              <svg width="16" height="16" viewBox="0 0 16 16">
+                <circle 
+                  cx="8" 
+                  cy="8" 
+                  r="6" 
+                  fill="white" 
+                  stroke="black" 
+                  strokeWidth="1.5"
+                />
+              </svg>
+            </div>
+            <span className="text-sm text-gray-800">New samples</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Helper component to render legend symbols
+function LegendSymbol({ shape, color, size, cx, cy }) {
+  const props = { fill: color, stroke: "none" };
+  
+  switch (shape) {
+    case "circle":
+      return <circle cx={cx} cy={cy} r={size} {...props} />;
+    case "square":
+      return <rect x={cx-size} y={cy-size} width={size*2} height={size*2} {...props} />;
+    case "triangle-up":
+      return <polygon points={`${cx},${cy-size} ${cx-size},${cy+size} ${cx+size},${cy+size}`} {...props} />;
+    case "triangle-down":
+      return <polygon points={`${cx},${cy+size} ${cx-size},${cy-size} ${cx+size},${cy-size}`} {...props} />;
+    case "diamond":
+      return <polygon points={`${cx},${cy-size} ${cx+size},${cy} ${cx},${cy+size} ${cx-size},${cy}`} {...props} />;
+    case "star":
+      const outerRadius = size;
+      const innerRadius = size * 0.4;
+      const points = [];
+      for (let i = 0; i < 10; i++) {
+        const radius = i % 2 === 0 ? outerRadius : innerRadius;
+        const angle = (i * Math.PI) / 5 - Math.PI / 2;
+        const x = cx + radius * Math.cos(angle);
+        const y = cy + radius * Math.sin(angle);
+        points.push(`${x},${y}`);
+      }
+      return <polygon points={points.join(' ')} {...props} />;
+    default:
+      return <circle cx={cx} cy={cy} r={size} {...props} />;
+  }
 }
 
 export default function Inference({ data, height = 640 }) {
@@ -53,6 +159,12 @@ export default function Inference({ data, height = 640 }) {
     [new_points]
   );
 
+  // Get unique groups for custom legend
+  const uniqueGroups = useMemo(() => {
+    const groups = [...new Set(scoresClean.map(r => r.Group))];
+    return groups.sort();
+  }, [scoresClean]);
+
   const traces = useMemo(() => {
     const t = [];
 
@@ -67,7 +179,7 @@ export default function Inference({ data, height = 640 }) {
         line: { width: 0 },
         fill: "toself",
         fillcolor: col + "33", // ~20% opacity
-        name: `${g} (95% ellipse)`,
+        name: `${groupFullName(g)} (95% ellipse)`,
         hoverinfo: "skip",
         showlegend: false,
         type: "scatter",
@@ -85,8 +197,13 @@ export default function Inference({ data, height = 640 }) {
           x: arr.map((r) => r.NMDS1),
           y: arr.map((r) => r.NMDS2),
           mode: "markers",
-          marker: { size: 8, color: groupColor(g) },
-          name: g,
+          marker: { 
+            size: 10, 
+            color: groupColor(g),
+            symbol: groupShape(g),
+            line: { width: 0 }
+          },
+          name: groupFullName(g),
           type: "scatter",
         });
       });
@@ -118,41 +235,64 @@ export default function Inference({ data, height = 640 }) {
         stress != null
           ? `NMDS axes 1 vs 2 (stress=${Number(stress).toFixed(3)})`
           : "NMDS axes 1 vs 2",
-      margin: { l: 40, r: 10, t: 40, b: 40 },
+      margin: { l: 60, r: 20, t: 60, b: 60 },
       paper_bgcolor: "white",
       plot_bgcolor: "white",
       xaxis: {
-        title: "NMDS1",
+        title: {
+          text: "NMDS 1",
+          font: { size: 16, color: "black", family: "Arial, sans-serif" },
+          standoff: 20
+        },
         zeroline: true,
         showgrid: true,
         gridcolor: "rgba(0,0,0,0.1)",
+        tickfont: { size: 12, color: "black" },
         // Keep equal scales (square axes) but let Plotly autorange initially
         scaleanchor: "y",
         scaleratio: 1,
         autorange: true,
       },
       yaxis: {
-        title: "NMDS2",
+        title: {
+          text: "NMDS 2",
+          font: { size: 16, color: "black", family: "Arial, sans-serif" },
+          standoff: 20
+        },
         zeroline: true,
         showgrid: true,
         gridcolor: "rgba(0,0,0,0.1)",
+        tickfont: { size: 12, color: "black" },
         autorange: true,
       },
-      legend: { orientation: "h", x: 0, y: -0.15 },
+      showlegend: false,
       hovermode: "closest",
     }),
     [stress]
   );
 
   return (
-    <div className="w-full" style={{ height }}>
-      <Plot
-        data={traces}
-        layout={layout}
-        useResizeHandler
-        style={{ width: "100%", height: "100%" }}
-        config={{ displaylogo: false }}
-      />
+    <div className="w-full">
+      <div className="flex flex-col xl:flex-row gap-4">
+        {/* Plot container */}
+        <div className="flex-1 rounded-lg overflow-hidden" style={{ height }}>
+          <Plot
+            data={traces}
+            layout={layout}
+            useResizeHandler
+            style={{ width: "100%", height: "100%" }}
+            config={{ displaylogo: false }}
+          />
+        </div>
+        
+        {/* Custom Legend */}
+        <div className="xl:w-80 xl:flex-shrink-0">
+          <CustomLegend 
+            groups={uniqueGroups} 
+            showNewPoints={newClean.length > 0}
+          />
+        </div>
+      </div>
     </div>
   );
 }

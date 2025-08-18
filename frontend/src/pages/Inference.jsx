@@ -42,7 +42,7 @@ export default function SimpleDataTool() {
   const [columns, setColumns] = useState(null);
   const [nmds, setNmds] = useState(null);
   const [error, setError] = useState(null);
-  const [tab, setTab] = useState("preview");
+  const [tab, setTab] = useState("inference");
 
   // NEW: demo & loading state
   const [mode, setMode] = useState("upload"); // "upload" | "demo"
@@ -67,7 +67,7 @@ export default function SimpleDataTool() {
     setColumns(null);
     setNmds(null);
     setError(null);
-    setTab("preview");
+    setTab("inference");
   };
 
   const handleUpload = async (file) => {
@@ -176,46 +176,48 @@ export default function SimpleDataTool() {
       </div>
 
       {/* Upload or Demo selector */}
-      {mode === "upload" ? (
-        <div className={loading ? "opacity-50 pointer-events-none" : ""}>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-            <FileUpload onUpload={handleUpload} onReset={resetState} />
-            <button
-              onClick={handleDownloadTemplate}
-              className="px-3 py-2 rounded border border-gray-300 bg-white hover:bg-gray-50 text-gray-800"
-              disabled={loading}
+      <div className="min-h-[80px] mb-4">
+        {mode === "upload" ? (
+          <div className={loading ? "opacity-50 pointer-events-none" : ""}>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <FileUpload onUpload={handleUpload} onReset={resetState} />
+              <button
+                onClick={handleDownloadTemplate}
+                className="px-3 py-2 rounded border border-gray-300 bg-white hover:bg-gray-50 text-gray-800"
+                disabled={loading}
+              >
+                Download Template CSV
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex gap-2 items-center">
+            <select
+              className="border rounded px-2 py-1"
+              value={demoName}
+              onChange={(e) => setDemoName(e.target.value)}
+              disabled={loading || demoOptions.length === 0}
             >
-              Download Template CSV
+              {demoOptions.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={handleRunDemo}
+              className={`px-4 py-2 rounded text-white ${
+                loading
+                  ? "bg-blue-300 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700"
+              }`}
+              disabled={loading || !demoName}
+            >
+              {loading ? "Loading…" : "Load Demo"}
             </button>
           </div>
-        </div>
-      ) : (
-        <div className="flex gap-2 items-center mb-4">
-          <select
-            className="border rounded px-2 py-1"
-            value={demoName}
-            onChange={(e) => setDemoName(e.target.value)}
-            disabled={loading || demoOptions.length === 0}
-          >
-            {demoOptions.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={handleRunDemo}
-            className={`px-4 py-2 rounded text-white ${
-              loading
-                ? "bg-blue-300 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700"
-            }`}
-            disabled={loading || !demoName}
-          >
-            {loading ? "Loading…" : "Load Demo"}
-          </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {error && (
         <div className="bg-red-100 text-red-800 px-4 py-2 my-2 rounded">
