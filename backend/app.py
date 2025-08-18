@@ -178,6 +178,27 @@ def download_template():
     template_path = Path("prediction/data/template.csv")
     return send_file(template_path, as_attachment=True)
 
+@app.route('/base-nmds', methods=['GET'])
+def get_base_nmds():
+    """Serve static base NMDS data for landing page display."""
+    base_data_path = Path("prediction/data/base_nmds.json")
+    
+    if not base_data_path.exists():
+        return jsonify({"error": "Base NMDS data not found. Run generate_base_nmds.py first."}), 404
+    
+    try:
+        with open(base_data_path, 'r') as f:
+            base_data = json.load(f)
+        
+        # Return in the same format as the regular processing
+        return jsonify({
+            "preview": [],  # No preview data for base plot
+            "columns": [],  # No columns for base plot
+            "nmds": base_data
+        })
+    except Exception as e:
+        return jsonify({"error": f"Failed to load base NMDS data: {e}"}), 500
+
 # --- flask stuff ---
 
 # Serve static files

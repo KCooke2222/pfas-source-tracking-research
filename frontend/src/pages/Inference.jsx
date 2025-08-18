@@ -50,6 +50,25 @@ export default function SimpleDataTool() {
   const [demoName, setDemoName] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Load base NMDS data on initial page load
+  useEffect(() => {
+    if (!nmds && !loading) {
+      setLoading(true);
+      axios
+        .get(`${apiBase}/base-nmds`)
+        .then((res) => {
+          setNmds(res.data.nmds);
+        })
+        .catch((e) => {
+          console.warn("Could not load base NMDS data:", e.message);
+          // Don't set error state for base data failure - just continue without it
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    }
+  }, []);
+
   useEffect(() => {
     if (mode !== "demo") return;
     axios
@@ -61,6 +80,22 @@ export default function SimpleDataTool() {
       })
       .catch((e) => setError(e.response?.data?.error || e.message));
   }, [mode]);
+
+  const resetToBase = async () => {
+    setPreview(null);
+    setColumns(null);
+    setError(null);
+    setTab("inference");
+    
+    // Reload base NMDS data without setting loading state
+    try {
+      const res = await axios.get(`${apiBase}/base-nmds`);
+      setNmds(res.data.nmds);
+    } catch (e) {
+      console.warn("Could not reload base NMDS data:", e.message);
+      setNmds(null);
+    }
+  };
 
   const resetState = () => {
     setPreview(null);
@@ -180,7 +215,7 @@ export default function SimpleDataTool() {
         {mode === "upload" ? (
           <div className={loading ? "opacity-50 pointer-events-none" : ""}>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <FileUpload onUpload={handleUpload} onReset={resetState} />
+              <FileUpload onUpload={handleUpload} onReset={resetToBase} />
               <button
                 onClick={handleDownloadTemplate}
                 className="px-3 py-2 rounded border border-gray-300 bg-white hover:bg-gray-50 text-gray-800"
@@ -277,7 +312,7 @@ export default function SimpleDataTool() {
         </div>
       )}
 
-      {!preview && !nmds && (
+      {!preview && !nmds && !loading && (
         <div className="text-gray-500 mt-8">
           Upload a CSV file or choose demo data to begin.
         </div>
