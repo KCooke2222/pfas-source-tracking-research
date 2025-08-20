@@ -140,7 +140,7 @@ function LegendSymbol({ shape, color, size, cx, cy }) {
   }
 }
 
-export default function Inference({ data, height = 640 }) {
+export default function Inference({ data, height }) {
   const { scores = [], new_points = [], ellipses = {}, stress } = data || {};
 
   // Clean numeric
@@ -271,22 +271,24 @@ export default function Inference({ data, height = 640 }) {
     [stress]
   );
 
+  const plotHeight = height || (typeof window !== 'undefined' && window.innerWidth < 768 ? 400 : 500);
+
   return (
     <div className="w-full">
-      <div className="flex flex-col xl:flex-row gap-4">
+      <div className="flex flex-col gap-4">
         {/* Plot container */}
-        <div className="flex-1 rounded-lg overflow-hidden" style={{ height }}>
+        <div className="w-full rounded-lg overflow-hidden" style={{ height: plotHeight }}>
           <Plot
             data={traces}
             layout={layout}
             useResizeHandler
             style={{ width: "100%", height: "100%" }}
-            config={{ displaylogo: false }}
+            config={{ displaylogo: false, responsive: true }}
           />
         </div>
         
         {/* Custom Legend */}
-        <div className="xl:w-80 xl:flex-shrink-0">
+        <div className="w-full">
           <CustomLegend 
             groups={uniqueGroups} 
             showNewPoints={newClean.length > 0}

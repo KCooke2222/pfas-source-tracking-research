@@ -295,7 +295,7 @@ export default function SimpleDataTool() {
         {tab === "preview" && preview && (
           <div>
             <h2 className="text-lg font-semibold mb-4 text-primary-900">CSV Preview</h2>
-            <div className="w-full" style={{ minWidth: '800px' }}>
+            <div className="w-full overflow-x-auto">
               <DataPreview preview={{ columns, preview }} />
             </div>
           </div>
@@ -304,7 +304,7 @@ export default function SimpleDataTool() {
         {tab === "inference" && nmds && (
           <div>
             <h2 className="text-lg font-semibold mb-4 text-primary-900">NMDS Result</h2>
-            <div className="w-full mb-4" style={{ minWidth: '800px' }}>
+            <div className="w-full mb-4">
               <Inference data={nmds} />
             </div>
             <button
