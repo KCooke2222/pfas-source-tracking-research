@@ -137,13 +137,15 @@ Use the **"Use demo data"** option in the frontend to try the tool without uploa
 
 The React frontend includes:
 
+- **Landing Page** – Home page with tool overview, usage instructions, and PFAS source types
+- **Header Navigation** – Clean navigation between Home and Analysis Tool
 - **Upload Interface** – Upload CSV files for NMDS analysis
 - **Demo Data Mode** – Choose from pre-loaded sample datasets
 - **Data Preview** – View uploaded CSV data before processing
 - **NMDS Visualization** – Interactive plot showing sample positions and confidence ellipses
-- **About Page** – Information about PFAS source types and tool usage
 - **Template Download** – Get properly formatted CSV template
 - **Results Export** – Download NMDS coordinates as CSV
+- **SERDP Acknowledgment** – Funding support information
 
 ## Data Requirements
 
@@ -173,15 +175,17 @@ backend/
 ```
 frontend/
 ├── src/
+│   ├── assets/              # Static assets
 │   ├── components/          # Reusable React components
 │   │   ├── DataPreview.jsx  # CSV data preview table
 │   │   ├── FileUpload.jsx   # File upload interface
-│   │   ├── Inference.jsx    # NMDS plot visualization
-│   │   └── Sidebar.jsx      # Navigation sidebar
+│   │   ├── Header.jsx       # Navigation header
+│   │   └── Inference.jsx    # NMDS plot visualization
 │   ├── pages/               # Page-level components
-│   │   ├── About.jsx        # Information about the tool
+│   │   ├── Home.jsx         # Landing page with tool overview
 │   │   └── Inference.jsx    # Main analysis page
-│   └── App.jsx              # Root application component
+│   ├── App.jsx              # Root application component
+│   └── index.css            # Global styles and theme colors
 ├── package.json             # Node.js dependencies
 └── vite.config.js           # Vite configuration
 ```

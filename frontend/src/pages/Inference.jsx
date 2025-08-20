@@ -8,7 +8,7 @@ const apiBase = import.meta.env.VITE_REACT_APP_API_BASE;
 
 function Spinner({ label = "Processing…" }) {
   return (
-    <div className="flex items-center gap-2 text-sm text-gray-700">
+    <div className="flex items-center gap-2 text-sm text-primary-700">
       <svg
         className="h-4 w-4 animate-spin"
         viewBox="0 0 24 24"
@@ -178,36 +178,39 @@ export default function SimpleDataTool() {
   const tabsEnabled = !!preview && !!nmds;
 
   return (
-    <div className="p-6 w-full max-w-7xl mx-auto">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">PFAS NMDS Tool</h1>
-        {loading && <Spinner />}
-      </div>
+    <div className="w-full">
+      <div className="bg-white border border-primary-200 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold text-primary-900">PFAS Analysis Tool</h1>
+          {loading && <Spinner />}
+        </div>
 
       {/* Mode toggle */}
-      <div className="flex items-center gap-6 mb-3">
-        <label className="flex items-center gap-2">
-          <input
-            type="radio"
-            name="mode"
-            value="upload"
-            checked={mode === "upload"}
-            onChange={() => setMode("upload")}
+      <div className="flex items-center mb-6">
+        <div className="bg-primary-100 p-1 border border-primary-200 inline-flex">
+          <button
+            onClick={() => setMode("upload")}
             disabled={loading}
-          />
-          <span>Upload CSV</span>
-        </label>
-        <label className="flex items-center gap-2">
-          <input
-            type="radio"
-            name="mode"
-            value="demo"
-            checked={mode === "demo"}
-            onChange={() => setMode("demo")}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+              mode === "upload"
+                ? "bg-primary-800 text-white"
+                : "text-primary-700 hover:text-primary-800 hover:bg-primary-50"
+            }`}
+          >
+            Upload CSV
+          </button>
+          <button
+            onClick={() => setMode("demo")}
             disabled={loading}
-          />
-          <span>Use demo data</span>
-        </label>
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+              mode === "demo"
+                ? "bg-primary-800 text-white"
+                : "text-primary-700 hover:text-primary-800 hover:bg-primary-50"
+            }`}
+          >
+            Use Demo Data
+          </button>
+        </div>
       </div>
 
       {/* Upload or Demo selector */}
@@ -218,7 +221,7 @@ export default function SimpleDataTool() {
               <FileUpload onUpload={handleUpload} onReset={resetToBase} />
               <button
                 onClick={handleDownloadTemplate}
-                className="px-3 py-2 rounded border border-gray-300 bg-white hover:bg-gray-50 text-gray-800"
+                className="px-3 py-2 border border-primary-300 bg-white hover:bg-primary-50 text-primary-800"
                 disabled={loading}
               >
                 Download Template CSV
@@ -228,7 +231,7 @@ export default function SimpleDataTool() {
         ) : (
           <div className="flex gap-2 items-center">
             <select
-              className="border rounded px-2 py-1"
+              className="border border-primary-300 px-2 py-1"
               value={demoName}
               onChange={(e) => setDemoName(e.target.value)}
               disabled={loading || demoOptions.length === 0}
@@ -241,10 +244,10 @@ export default function SimpleDataTool() {
             </select>
             <button
               onClick={handleRunDemo}
-              className={`px-4 py-2 rounded text-white ${
+              className={`px-4 py-2 text-white ${
                 loading
-                  ? "bg-blue-300 cursor-not-allowed"
-                  : "bg-blue-600 hover:bg-blue-700"
+                  ? "bg-primary-300 cursor-not-allowed"
+                  : "bg-primary-800 hover:bg-primary-900"
               }`}
               disabled={loading || !demoName}
             >
@@ -255,7 +258,7 @@ export default function SimpleDataTool() {
       </div>
 
       {error && (
-        <div className="bg-red-100 text-red-800 px-4 py-2 my-2 rounded">
+        <div className="bg-red-100 text-red-800 px-4 py-2 my-2 border border-red-200">
           {error}
         </div>
       )}
@@ -265,10 +268,10 @@ export default function SimpleDataTool() {
           <button
             onClick={() => setTab("preview")}
             disabled={loading}
-            className={`px-4 py-1 rounded border transition-colors ${
+            className={`px-4 py-1 border transition-colors ${
               tab === "preview"
-                ? "bg-blue-100 border-blue-400 font-semibold"
-                : "bg-gray-100 border-gray-200"
+                ? "bg-primary-100 border-primary-400 font-semibold"
+                : "bg-primary-50 border-primary-200"
             } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             Preview Data
@@ -276,10 +279,10 @@ export default function SimpleDataTool() {
           <button
             onClick={() => setTab("inference")}
             disabled={loading}
-            className={`px-4 py-1 rounded border transition-colors ${
+            className={`px-4 py-1 border transition-colors ${
               tab === "inference"
-                ? "bg-blue-100 border-blue-400 font-semibold"
-                : "bg-gray-100 border-gray-200"
+                ? "bg-primary-100 border-primary-400 font-semibold"
+                : "bg-primary-50 border-primary-200"
             } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             NMDS Result
@@ -287,36 +290,43 @@ export default function SimpleDataTool() {
         </div>
       )}
 
-      {tab === "preview" && preview && (
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold mb-2">CSV Preview</h2>
-          <div className="overflow-x-auto w-full">
-            <DataPreview preview={{ columns, preview }} />
+      {/* Content Area - Fixed Height Container */}
+      <div className="min-h-[400px]">
+        {tab === "preview" && preview && (
+          <div>
+            <h2 className="text-lg font-semibold mb-4 text-primary-900">CSV Preview</h2>
+            <div className="w-full" style={{ minWidth: '800px' }}>
+              <DataPreview preview={{ columns, preview }} />
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {tab === "inference" && nmds && (
-        <div>
-          <h2 className="text-lg font-semibold mb-2">NMDS Result</h2>
-          <div className="overflow-x-auto w-full">
-            <Inference data={nmds} />
+        {tab === "inference" && nmds && (
+          <div>
+            <h2 className="text-lg font-semibold mb-4 text-primary-900">NMDS Result</h2>
+            <div className="w-full mb-4" style={{ minWidth: '800px' }}>
+              <Inference data={nmds} />
+            </div>
+            <button
+              onClick={handleDownload}
+              className="px-4 py-2 bg-primary-800 text-white hover:bg-primary-900"
+              disabled={loading}
+            >
+              Download New Points CSV
+            </button>
           </div>
-          <button
-            onClick={handleDownload}
-            className="mt-4 px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
-            disabled={loading}
-          >
-            Download New Points CSV
-          </button>
-        </div>
-      )}
+        )}
+      </div>
 
-      {!preview && !nmds && !loading && (
-        <div className="text-gray-500 mt-8">
-          Upload a CSV file or choose demo data to begin.
-        </div>
-      )}
+        {!preview && !nmds && !loading && (
+          <div className="text-center text-primary-500 mt-12 py-12">
+            <svg className="mx-auto h-12 w-12 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            <p className="mt-4 text-lg">Upload a CSV file or choose demo data to begin analysis.</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
