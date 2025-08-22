@@ -1,6 +1,6 @@
 # PFAS Source Tracking Research
 
-This project offers a full-stack tool for visualizing PFAS data via Non-metric Multidimensional Scaling (NMDS).
+This project offers a full-stack tool for visualizing PFAS data via Non-metric Multidimensional Scaling (NMDS) with two analytical approaches: **1633 PFAS compounds** and **diagnostic target and suspect chemicals**.
 The backend is a Flask API that executes an R script, while the frontend is a React + Vite interface for uploading CSV files or exploring demo datasets.
 
 ## Quick Start
@@ -65,10 +65,12 @@ Then visit http://localhost:8080
    install.packages(c('vegan','ggplot2','jsonlite','tibble','MASS','dplyr','tidyr','readr','purrr','patchwork','cowplot'))
    ```
 
-4. **Generate base NMDS data (optional):**
+4. **Generate data files (templates, demos, base NMDS):**
 
    ```bash
-   python generate_base_nmds.py
+   python data_generation_pipeline.py  # Interactive CLI
+   # or
+   python data_generation_pipeline.py --all  # Generate for both modes
    ```
 
 5. **Start the backend server:**
@@ -80,12 +82,14 @@ Then visit http://localhost:8080
 
 ### API Endpoints
 
-- `GET /demo/options` – list bundled demo CSVs
-- `POST /demo/run` – run NMDS on a chosen demo file
-- `POST /upload` – run NMDS on an uploaded CSV
-- `POST /download` – return new point coordinates as CSV
-- `GET /template` – download CSV template file
-- `GET /base-nmds` – get base NMDS data for landing page display
+All endpoints support a `mode` parameter to specify analysis type (`1633_pfas` or `diagnostic_chemicals`):
+
+- `GET /demo/options?mode=<mode>` – list bundled demo CSVs for specific mode
+- `POST /demo/run` – run NMDS on a chosen demo file (with mode in request body)
+- `POST /upload` – run NMDS on an uploaded CSV (with mode in form data)
+- `POST /download` – return new point coordinates as CSV (with mode in request body)
+- `GET /template?mode=<mode>` – download CSV template file for specific mode
+- `GET /base-nmds?mode=<mode>` – get base NMDS data for landing page display
 
 ### Frontend Setup
 
@@ -130,26 +134,35 @@ Then visit http://localhost:8080
 
 ## Demo Data
 
-Sample CSV files live under `backend/prediction/data/test`.  
-Use the **"Use demo data"** option in the frontend to try the tool without uploading your own file.
+Sample CSV files are organized by analysis mode:
+
+- `backend/prediction/data/1633_pfas/test/` – Demo files for 1633 PFAS analysis
+- `backend/prediction/data/diagnostic_chemicals/test/` – Demo files for diagnostic chemicals analysis
+
+Use the **"Use Demo Data"** option in the frontend to try the tool without uploading your own file.
 
 ## Frontend Features
 
 The React frontend includes:
 
 - **Landing Page** – Home page with tool overview, usage instructions, and PFAS source types
-- **Header Navigation** – Clean navigation between Home and Analysis Tool
-- **Upload Interface** – Upload CSV files for NMDS analysis
-- **Demo Data Mode** – Choose from pre-loaded sample datasets
+- **Header Navigation** – Navigation between Home, 1633 PFAS Analysis, and Diagnostic Chemicals Analysis
+- **Dual Analysis Modes** – Two separate analysis workflows using the same interface
+- **Upload Interface** – Upload CSV files for NMDS analysis in either mode
+- **Demo Data Mode** – Choose from pre-loaded sample datasets for each analysis type
 - **Data Preview** – View uploaded CSV data before processing
 - **NMDS Visualization** – Interactive plot showing sample positions and confidence ellipses
-- **Template Download** – Get properly formatted CSV template
+- **Template Download** – Get properly formatted CSV template for each analysis mode
 - **Results Export** – Download NMDS coordinates as CSV
-- **SERDP Acknowledgment** – Funding support information
 
 ## Data Requirements
 
-The tool expects CSV files with PFAS concentration data. Use the template download feature to get the proper format, or reference the sample files in `backend/prediction/data/test/`.
+The tool expects CSV files with chemical concentration data. Use the template download feature to get the proper format for each analysis mode:
+
+- **1633 PFAS mode:** Concentrations for 1633 PFAS compounds
+- **Diagnostic chemicals mode:** Concentrations for diagnostic target and suspect chemicals
+
+Reference the sample files in the respective test directories for each mode.
 
 ## Architecture Overview
 
@@ -157,17 +170,23 @@ The tool expects CSV files with PFAS concentration data. Use the template downlo
 
 ```
 backend/
-├── app.py                    # Main Flask application
-├── generate_base_nmds.py     # Script to generate base NMDS data
-├── requirements.txt          # Python dependencies
+├── app.py                       # Main Flask application
+├── data_generation_pipeline.py  # Script to generate all data files
+├── requirements.txt             # Python dependencies
 └── prediction/
-    ├── 1633_NMDS.R          # R script for NMDS analysis
+    ├── 1633_NMDS.R             # R script for NMDS analysis
     ├── data/
-    │   ├── base_nmds.json   # Pre-computed base NMDS data
-    │   ├── template.csv     # CSV template for uploads
-    │   ├── test/            # Demo CSV files
-    │   └── train/           # Training data for NMDS model
-    └── output/              # Generated plots and model files
+    │   ├── 1633_pfas/          # 1633 PFAS analysis mode
+    │   │   ├── train/          # Training data
+    │   │   ├── test/           # Demo CSV files
+    │   │   ├── base_nmds.json  # Pre-computed base NMDS data
+    │   │   └── template.csv    # CSV template for uploads
+    │   └── diagnostic_chemicals/  # Diagnostic chemicals mode
+    │       ├── train/          # Training data
+    │       ├── test/           # Demo CSV files
+    │       ├── base_nmds.json  # Pre-computed base NMDS data
+    │       └── template.csv    # CSV template for uploads
+    └── output/                 # Generated plots and model files
 ```
 
 ### Frontend Structure

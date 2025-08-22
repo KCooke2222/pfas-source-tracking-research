@@ -11,9 +11,14 @@ function App() {
       <Header currentPage={currentPage} setCurrentPage={setCurrentPage} />
       <main>
         {currentPage === "home" && <Home setCurrentPage={setCurrentPage} />}
-        {currentPage === "inference" && (
+        {currentPage === "1633_pfas" && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <Inference />
+            <Inference analysisMode="1633_pfas" />
+          </div>
+        )}
+        {currentPage === "diagnostic_chemicals" && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <Inference analysisMode="diagnostic_chemicals" />
           </div>
         )}
       </main>

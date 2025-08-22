@@ -24,11 +24,34 @@ def allowed_file(filename):
 
 # --- CONFIG ---
 R_FILE    = Path("prediction/1633_NMDS.R").resolve()
-TRAIN_CSV = Path("prediction/data/train/240130-Paper1-present 1633 targets.csv").resolve()
 OUT_DIR   = Path("prediction/output").resolve()
-DEMO_DIR  = Path("prediction/data/test").resolve()  # backend/prediction/data/test
+DATA_BASE = Path("prediction/data").resolve()
+
+# Available analysis modes
+AVAILABLE_MODES = ["1633_pfas", "diagnostic_chemicals"]
+DEFAULT_MODE = "1633_pfas"
 
 # --- helpers ---
+def _get_mode_paths(mode):
+    """Get file paths for a given mode using consistent folder structure."""
+    if mode not in AVAILABLE_MODES:
+        raise ValueError(f"Invalid mode: {mode}. Available: {AVAILABLE_MODES}")
+    
+    mode_dir = DATA_BASE / mode
+    train_dir = mode_dir / "train"
+    
+    # Find the first CSV file in train directory
+    train_csvs = list(train_dir.glob("*.csv"))
+    if not train_csvs:
+        raise FileNotFoundError(f"No training CSV found in {train_dir}")
+    
+    return {
+        "train_csv": train_csvs[0],
+        "demo_dir": mode_dir / "test",
+        "base_nmds": mode_dir / "base_nmds.json",
+        "template": mode_dir / "template.csv"
+    }
+
 def _run_rscript(train_csv, new_csv, out_dir, save_plots=False):
     rscript = shutil.which("Rscript")
     if not rscript:
@@ -92,12 +115,14 @@ def _ellipse_params(scores_df: pd.DataFrame):
     return ell
 
 # --- core ---
-def _process_csv(new_csv_path: Path):
+def _process_csv(new_csv_path: Path, mode=DEFAULT_MODE):
+    paths = _get_mode_paths(mode)
+    
     df = pd.read_csv(new_csv_path)
     preview = df.head(5).to_dict(orient='records')
     columns = list(df.columns)
 
-    payload = _run_rscript(TRAIN_CSV, new_csv_path, OUT_DIR, save_plots=False)
+    payload = _run_rscript(paths["train_csv"], new_csv_path, OUT_DIR, save_plots=False)
 
     scores_df = pd.DataFrame(payload["scores"])      # Sample, Group, NMDS1, NMDS2
     new_df    = pd.DataFrame(payload["new_points"])  # Sample, NMDS1, NMDS2
@@ -116,22 +141,35 @@ def _process_csv(new_csv_path: Path):
 
 @app.route('/demo/options', methods=['GET'])
 def demo_options():
-    if not DEMO_DIR.exists():
-        return jsonify({"options": []})
-    files = sorted([p.name for p in DEMO_DIR.glob("*.csv") if p.is_file()])
-    return jsonify({"options": files})
+    mode = request.args.get('mode', DEFAULT_MODE)
+    try:
+        paths = _get_mode_paths(mode)
+        demo_dir = paths["demo_dir"]
+        if not demo_dir.exists():
+            return jsonify({"options": []})
+        files = sorted([p.name for p in demo_dir.glob("*.csv") if p.is_file()])
+        return jsonify({"options": files})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
 
 @app.route('/demo/run', methods=['POST'])
 def demo_run():
-    name = (request.get_json() or {}).get("name", "")
-    # allow only files we advertised
-    allowed = {p.name for p in DEMO_DIR.glob("*.csv")}
-    if name not in allowed:
-        return jsonify({"error": "Invalid demo file"}), 400
-
+    data = request.get_json() or {}
+    name = data.get("name", "")
+    mode = data.get("mode", DEFAULT_MODE)
+    
     try:
-        result = _process_csv(DEMO_DIR / name)
+        paths = _get_mode_paths(mode)
+        demo_dir = paths["demo_dir"]
+        # allow only files we advertised
+        allowed = {p.name for p in demo_dir.glob("*.csv")}
+        if name not in allowed:
+            return jsonify({"error": "Invalid demo file"}), 400
+
+        result = _process_csv(demo_dir / name, mode)
         return jsonify(result)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
         return jsonify({"error": f"Demo processing failed: {e}"}), 500
 
@@ -139,6 +177,8 @@ def demo_run():
 @app.route('/upload', methods=['POST'])
 def upload_nmds():
     file = request.files.get("file")
+    mode = request.form.get("mode", DEFAULT_MODE)
+    
     if not file:
         return jsonify({"error": "No file uploaded"}), 400
     if not file.filename.lower().endswith(".csv"):
@@ -148,8 +188,10 @@ def upload_nmds():
         with tempfile.TemporaryDirectory() as td:
             new_csv = Path(td) / "new_samples.csv"
             file.save(str(new_csv))
-            result = _process_csv(new_csv)
+            result = _process_csv(new_csv, mode)
             return jsonify(result)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
         return jsonify({"error": f"R execution failed: {e}"}), 500
 
@@ -157,36 +199,91 @@ def upload_nmds():
 @app.route('/download', methods=['POST'])
 def download_results():
     data = request.get_json()
-    results = data.get('results')
-    if not results:
-        return jsonify({'error': 'No results to download'}), 400
+    nmds_data = data.get('nmds')
+    mode = data.get('mode', 'analysis')
+    
+    if not nmds_data:
+        return jsonify({'error': 'No NMDS data to download'}), 400
 
-    df = pd.DataFrame(results)
-    buf = io.StringIO()
-    df.to_csv(buf, index=False)
-    buf.seek(0)
+    new_points = nmds_data.get('new_points', [])
+    base_points = nmds_data.get('scores', [])
+    stress = nmds_data.get('stress')
+    
+    if not new_points:
+        return jsonify({'error': 'No new data points to download'}), 400
+
+    # Create clean CSV data
+    csv_rows = []
+    
+    # Header with metadata (plain text, no #)
+    mode_name = "1633 PFAS Compounds" if mode == "1633_pfas" else "Diagnostic Target & Suspect Chemicals"
+    stress_str = f"{stress:.4f}" if stress is not None else "N/A"
+    csv_rows.extend([
+        "PFAS NMDS Analysis Results",
+        f"Analysis Mode: {mode_name}",
+        f"Generated: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        f"Stress: {stress_str}",
+        f"New samples: {len(new_points)}",
+        "",  # Empty line
+        "Sample,NMDS1,NMDS2"
+    ])
+    
+    # New sample data
+    for point in new_points:
+        sample = str(point.get('Sample', 'Unknown')).replace('"', '""')  # Escape quotes
+        nmds1 = f"{float(point.get('NMDS1', 0)):.4f}"
+        nmds2 = f"{float(point.get('NMDS2', 0)):.4f}"
+        csv_rows.append(f'"{sample}",{nmds1},{nmds2}')
+    
+    # All training data points for reference
+    csv_rows.extend(["", "All training data points for reference:"])
+    
+    for point in base_points:
+        if point.get('Group'):  # Only include points with group labels
+            sample = str(point.get('Sample', point.get('Group', 'Unknown'))).replace('"', '""')
+            nmds1 = f"{float(point.get('NMDS1', 0)):.4f}"
+            nmds2 = f"{float(point.get('NMDS2', 0)):.4f}"
+            csv_rows.append(f'"{sample}",{nmds1},{nmds2}')
+    
+    # Create CSV content
+    csv_content = "\n".join(csv_rows)
+    
+    # Generate filename
+    timestamp = pd.Timestamp.now().strftime('%Y-%m-%d')
+    filename = f"{mode}_nmds_results_{timestamp}.csv"
+    
     return send_file(
-        io.BytesIO(buf.getvalue().encode()),
+        io.BytesIO(csv_content.encode('utf-8')),
         mimetype='text/csv',
         as_attachment=True,
-        download_name='results.csv'
+        download_name=filename
     )
 
 
 @app.route("/template", methods=["GET"])
 def download_template():
-    template_path = Path("prediction/data/template.csv")
-    return send_file(template_path, as_attachment=True)
+    mode = request.args.get('mode', DEFAULT_MODE)
+    try:
+        paths = _get_mode_paths(mode)
+        template_path = paths["template"]
+        if not template_path.exists():
+            return jsonify({"error": f"Template not found for mode: {mode}"}), 404
+        return send_file(template_path, as_attachment=True)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
 
 @app.route('/base-nmds', methods=['GET'])
 def get_base_nmds():
     """Serve static base NMDS data for landing page display."""
-    base_data_path = Path("prediction/data/base_nmds.json")
-    
-    if not base_data_path.exists():
-        return jsonify({"error": "Base NMDS data not found. Run generate_base_nmds.py first."}), 404
+    mode = request.args.get('mode', DEFAULT_MODE)
     
     try:
+        paths = _get_mode_paths(mode)
+        base_data_path = paths["base_nmds"]
+        
+        if not base_data_path.exists():
+            return jsonify({"error": f"Base NMDS data not found for mode: {mode}. Run generate_base_nmds.py first."}), 404
+        
         with open(base_data_path, 'r') as f:
             base_data = json.load(f)
         
@@ -196,6 +293,8 @@ def get_base_nmds():
             "columns": [],  # No columns for base plot
             "nmds": base_data
         })
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
         return jsonify({"error": f"Failed to load base NMDS data: {e}"}), 500
 

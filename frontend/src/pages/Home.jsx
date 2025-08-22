@@ -14,12 +14,29 @@ export default function Home({ setCurrentPage }) {
               Upload PFAS data and compare with source profiles using NMDS
               analysis
             </h1>
-            <div className="mt-10">
+            <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
               <button
-                onClick={() => setCurrentPage("inference")}
+                onClick={() => setCurrentPage("1633_pfas")}
                 className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium text-white bg-primary-800 hover:bg-primary-900 transition-colors"
               >
-                Start Analysis
+                1633 PFAS Analysis
+                <svg
+                  className="ml-2 -mr-1 w-5 h-5"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+              <button
+                onClick={() => setCurrentPage("diagnostic_chemicals")}
+                className="inline-flex items-center px-6 py-3 border border-primary-800 text-base font-medium text-primary-800 bg-white hover:bg-primary-50 transition-colors"
+              >
+                Diagnostic Chemicals Analysis
                 <svg
                   className="ml-2 -mr-1 w-5 h-5"
                   fill="currentColor"
@@ -171,13 +188,13 @@ export default function Home({ setCurrentPage }) {
       <div className="py-12 bg-primary-50 border-t border-primary-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h3 className="text-lg font-semibold text-primary-900 mb-4">
+            <h3 className="text-xl font-semibold text-primary-900 mb-4">
               Contact Information
             </h3>
-            <p className="text-primary-600 mb-2">
+            <p className="text-primary-600 mb-2 text-base">
               For questions about this tool or collaboration opportunities:
             </p>
-            <div className="text-primary-800 font-medium">
+            <div className="text-primary-800 font-medium text-base">
               <p>Gerrad Jones</p>
               <p>gerrad.jones@oregonstate.edu</p>
               <p>Office: 541-737-4534</p>

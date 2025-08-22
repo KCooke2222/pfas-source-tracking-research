@@ -14,14 +14,24 @@ export default function Header({ currentPage, setCurrentPage }) {
           
           <nav className="flex space-x-8">
             <button
-              onClick={() => setCurrentPage("inference")}
+              onClick={() => setCurrentPage("1633_pfas")}
               className={`px-3 py-2 text-sm font-medium transition-colors ${
-                currentPage === "inference"
+                currentPage === "1633_pfas"
                   ? "bg-primary-700 text-white"
                   : "text-primary-300 hover:text-white hover:bg-primary-700"
               }`}
             >
-              Analysis Tool
+              1633 PFAS
+            </button>
+            <button
+              onClick={() => setCurrentPage("diagnostic_chemicals")}
+              className={`px-3 py-2 text-sm font-medium transition-colors ${
+                currentPage === "diagnostic_chemicals"
+                  ? "bg-primary-700 text-white"
+                  : "text-primary-300 hover:text-white hover:bg-primary-700"
+              }`}
+            >
+              Diagnostic Chemicals
             </button>
           </nav>
         </div>
