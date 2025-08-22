@@ -4,21 +4,15 @@ export default function Header({ currentPage, setCurrentPage }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <h1 className="text-xl font-bold text-white">PFAS Source Tracking</h1>
+            <button 
+              onClick={() => setCurrentPage("home")}
+              className="text-xl font-bold text-white hover:text-primary-200 transition-colors cursor-pointer"
+            >
+              PFAS Source Tracking
+            </button>
           </div>
           
           <nav className="flex space-x-8">
-            <button
-              onClick={() => setCurrentPage("home")}
-              className={`px-3 py-2 text-sm font-medium transition-colors ${
-                currentPage === "home"
-                  ? "bg-primary-700 text-white"
-                  : "text-primary-300 hover:text-white hover:bg-primary-700"
-              }`}
-            >
-              Home
-            </button>
-            
             <button
               onClick={() => setCurrentPage("inference")}
               className={`px-3 py-2 text-sm font-medium transition-colors ${
